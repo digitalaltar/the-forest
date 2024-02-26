@@ -125,7 +125,6 @@ function init() {
     loadGLBModel();
     addEnvironment();
     checkVR();
-    startControllers();
 
     window.addEventListener('resize', onWindowResize);
 

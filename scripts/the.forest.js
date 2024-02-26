@@ -74,6 +74,13 @@ function init() {
     camera = new THREE.PerspectiveCamera(90, aspectRatio, 0.1, 1000);
     camera.position.set(0, 0, 5); // Slightly elevate the camera and move it back
 
+    // Create a camera rig, and add the camera to the rig
+    let cameraRig = new THREE.Group();
+    cameraRig.add(camera);
+
+    // Then add the cameraRig to the scene instead of the camera
+    scene.add(cameraRig);
+
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.gammaOutput = true;
@@ -204,6 +211,7 @@ function checkVR() {
 }
 
 function startRender() {
+    cameraRig.position.set(0, 1.6, 0);
     controls.enabled = false;
 }
 
@@ -302,7 +310,7 @@ function addGradientOverlay(width, height) {
     const geometry = new THREE.PlaneGeometry(width, height); // Match the size of your reflector
     const plane = new THREE.Mesh(geometry, material);
     plane.position.copy(reflector.position);
-    plane.position.y += 0.02; // Slightly above the reflector
+    plane.position.y += 0.04; // Slightly above the reflector
     plane.rotation.x = reflector.rotation.x;
     scene.add(plane);
 }

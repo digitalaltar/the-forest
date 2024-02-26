@@ -124,7 +124,7 @@ function init() {
     //loadGLBModel();
     //addEnvironment();
     checkVR();
-    //startControllers();
+    startControllers();
 
     window.addEventListener('resize', onWindowResize);
 
@@ -210,7 +210,7 @@ function checkVR() {
 }
 
 function startRender() {
-    cameraRig.position.set(0, 1.6, 0);
+    cameraRig.position.set(0, 1.6, -5);
     controls.enabled = false;
 }
 

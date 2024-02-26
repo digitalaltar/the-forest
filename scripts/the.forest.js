@@ -22,6 +22,9 @@ let previousMousePosition = {
     y: 0
 };
 
+let hdrEnvironment; // Global variable to store the HDR environment map
+
+
 document.addEventListener('mousedown', onMouseDown, false);
 document.addEventListener('mousemove', onMouseMove, false);
 document.addEventListener('mouseup', onMouseUp, false);
@@ -113,6 +116,7 @@ function init() {
 
     addLights();
     loadGLBModel();
+    addEnvironment();
     checkVR();
     startControllers();
 
@@ -128,16 +132,45 @@ function loadGLBModel() {
     loader.load('./assets/the-forest.glb', function(gltf) {
         const model = gltf.scene;
 
-        // Assuming the model is too high, adjust the y value here. 
-        // For example, to lower it by 2 units, you might set it to -2.
         model.position.set(-1.3, -8, 4); // Adjust this value as needed to position the model correctly
-
         model.scale.set(8, 8, 8); // Adjust scale as needed
-
         model.name = 'interactiveModel'; // Assign a name for easy identification
+
+        model.traverse((child) => {
+            if (child.isMesh && child.material && hdrEnvironment) {
+                // Apply the HDR environment map to each material for reflections
+                child.material.envMap = hdrEnvironment;
+                child.material.needsUpdate = true;
+
+                // Optional: Adjust material properties for better reflection visuals
+                if (child.material.type === 'MeshStandardMaterial' || child.material.type === 'MeshPhysicalMaterial') {
+                    child.material.metalness = 0.5; // Adjust as needed
+                    child.material.roughness = 0.1; // Adjust as needed
+                }
+            }
+        });
         scene.add(model);
     }, undefined, function(error) {
         console.error(error);
+    });
+}
+
+function addEnvironment() {
+    const loader = new RGBELoader();
+    loader.setDataType(THREE.FloatType);
+    loader.load('./assets/outdoor.hdr', function(texture) {
+        texture.mapping = THREE.EquirectangularReflectionMapping;
+        hdrEnvironment = texture; // Store the loaded texture for later use
+    });
+}
+
+function updateMaterials() {
+    scene.traverse((node) => {
+        if (node.isMesh && node.material) {
+            node.material.needsUpdate = true;
+            // Additionally, if the material uses envMap explicitly, set it here
+            // node.material.envMap = scene.environment;
+        }
     });
 }
 

@@ -116,7 +116,6 @@ function init() {
 
         adjustWallAndFloorGeometry(imgAspectRatio); // Adjust both wall and floor geometry
 
-
         // Start the animation loop after everything is set up
         animate();
     });
@@ -370,9 +369,15 @@ function getIntersects(x, y) {
 }
 
 function animate() {
-    requestAnimationFrame(animate);
+    renderer.setAnimationLoop(function () {
+        update(); // Call your update functions here (e.g., for animation)
+        renderer.render(scene, camera);
+    });
+}
+
+function update() {
+    // Update uniforms, controls, or any animations
     wallMaterial.uniforms.time.value = clock.getElapsedTime();
-    renderer.render(scene, camera);
 }
 
 init();

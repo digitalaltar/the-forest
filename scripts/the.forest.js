@@ -1,9 +1,17 @@
+//-----------------------
+// Imports
+//-----------------------
+
 import * as THREE from 'three';
 import { OrbitControls } from 'OrbitControls';
 import { VRButton } from 'VRButton';
 import { Reflector } from 'Reflector';
 import { GLTFLoader } from 'GLTFLoader';
 import { RGBELoader } from 'RGBELoader';
+
+//-----------------------
+// Variables
+//-----------------------
 
 let scene, camera, renderer;
 let wall; // Reference to the wall mesh
@@ -23,10 +31,6 @@ let previousMousePosition = {
 };
 
 let hdrEnvironment; // Global variable to store the HDR environment map
-
-document.addEventListener('mousedown', onMouseDown, false);
-document.addEventListener('mousemove', onMouseMove, false);
-document.addEventListener('mouseup', onMouseUp, false);
 
 let wallMaterial = new THREE.ShaderMaterial({
     vertexShader: `
@@ -66,6 +70,17 @@ let wallMaterial = new THREE.ShaderMaterial({
     transparent: true,
     side: THREE.DoubleSide // Adjusted to DoubleSide for visibility from both sides
 });
+
+//-----------------------
+// Run It
+//-----------------------
+
+init();
+addListeners();
+
+//-----------------------
+// Main Function
+//-----------------------
 
 function init() {
     scene = new THREE.Scene();
@@ -121,17 +136,66 @@ function init() {
     });
 
     addLights();
-    //loadGLBModel();
-    //addEnvironment();
+    loadGLBModel();
+    addHdrEnvironment();
     checkVR();
     startControllers();
-
-    window.addEventListener('resize', onWindowResize);
-
-    // Event listeners for entering and exiting VR
-    renderer.xr.addEventListener('sessionstart', startRender);
-    renderer.xr.addEventListener('sessionend', endRender);
 }
+
+//-----------------------
+// Animation Functions
+//-----------------------
+
+function animate() {
+    renderer.setAnimationLoop(function () {
+        update();
+        renderer.render(scene, camera);
+    });
+}
+
+function update() {
+    // Update uniforms, controls, or any animations
+    wallMaterial.uniforms.time.value = clock.getElapsedTime();
+}
+
+//-----------------------
+// Floor & Wall Set Up
+//-----------------------
+
+function adjustWallAndFloorGeometry(imgAspectRatio) {
+    let wallWidth, wallHeight, wallGeometry;
+
+    if (camera.aspect > imgAspectRatio) {
+        // Adjust geometry to maintain image aspect ratio
+        wallWidth = window.innerWidth;
+        wallHeight = wallWidth / imgAspectRatio;
+        wallGeometry = new THREE.PlaneGeometry(wallWidth / 100, wallHeight / 100);
+    } else {
+        wallHeight = window.innerHeight;
+        wallWidth = wallHeight * imgAspectRatio;
+        wallGeometry = new THREE.PlaneGeometry(wallWidth / 100, wallHeight / 100);
+    }
+
+    // Adjust wall geometry
+    wallGeometry = new THREE.PlaneGeometry(wallWidth / 100, wallHeight / 100);
+    if (wall) {
+        wall.geometry.dispose(); // Dispose of the old geometry
+        wall.geometry = wallGeometry;
+    }
+
+    // Adjust floor geometry to match wall width and a fixed depth
+    floorGeometry = new THREE.PlaneGeometry(wallWidth / 100, 10); // Assuming a fixed depth of 10
+    if (reflector) {
+        reflector.geometry.dispose(); // Dispose of the old geometry
+        reflector.geometry = floorGeometry;
+    }
+
+    addGradientOverlay(wallWidth / 100, 10); // Assuming 10 is the desired depth for the floor
+}
+
+//-----------------------
+// Load GLB Model
+//-----------------------
 
 function loadGLBModel() {
     const loader = new GLTFLoader();
@@ -161,22 +225,16 @@ function loadGLBModel() {
     });
 }
 
-function addEnvironment() {
+//-----------------------
+// Lighting
+//-----------------------
+
+function addHdrEnvironment() {
     const loader = new RGBELoader();
     loader.setDataType(THREE.FloatType);
     loader.load('./assets/outdoor.hdr', function(texture) {
         texture.mapping = THREE.EquirectangularReflectionMapping;
         hdrEnvironment = texture; // Store the loaded texture for later use
-    });
-}
-
-function updateMaterials() {
-    scene.traverse((node) => {
-        if (node.isMesh && node.material) {
-            node.material.needsUpdate = true;
-            // Additionally, if the material uses envMap explicitly, set it here
-            // node.material.envMap = scene.environment;
-        }
     });
 }
 
@@ -191,6 +249,59 @@ function addLights() {
     scene.add(directionalLight);
 }
 
+//-----------------------
+// Background Set Up
+//-----------------------
+
+function createGradientTexture() {
+    const size = 512; // Texture size
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const context = canvas.getContext('2d');
+
+    const gradient = context.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+    gradient.addColorStop(0, 'rgba(0,0,0,0)');
+    gradient.addColorStop(1, 'black');
+
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, size, size);
+
+    const texture = new THREE.Texture(canvas);
+    texture.needsUpdate = true;
+    return texture;
+}
+
+function addGradientOverlay(width, height) {
+    const gradientTexture = createGradientTexture();
+    const material = new THREE.MeshBasicMaterial({ 
+        map: gradientTexture, 
+        transparent: true, 
+        side: THREE.DoubleSide 
+    });
+    const geometry = new THREE.PlaneGeometry(width, height); // Match the size of your reflector
+    const plane = new THREE.Mesh(geometry, material);
+    plane.position.copy(reflector.position);
+    plane.position.y += 0.04; // Slightly above the reflector
+    plane.rotation.x = reflector.rotation.x;
+    scene.add(plane);
+}
+
+//-----------------------
+// Event Listeners
+//-----------------------
+
+function addListeners() {
+    window.addEventListener('resize', onWindowResize);
+    document.addEventListener('mousedown', onMouseDown, false);
+    document.addEventListener('mousemove', onMouseMove, false);
+    document.addEventListener('mouseup', onMouseUp, false);
+}
+
+//-----------------------
+// VR Events
+//-----------------------
+
 function checkVR() {
     // Check if WebXR is supported
     if ('xr' in navigator) {
@@ -198,6 +309,10 @@ function checkVR() {
             if (supported) {
                 // WebXR is supported, show the VR button
                 document.body.appendChild(VRButton.createButton(renderer));
+
+                // Event listeners for entering and exiting VR
+                renderer.xr.addEventListener('sessionstart', startRender);
+                renderer.xr.addEventListener('sessionend', endRender);
             } else {
                 // WebXR is not supported, handle accordingly
                 console.warn("Immersive VR is not supported by your browser");
@@ -211,14 +326,20 @@ function checkVR() {
 
 function startRender() {
     cameraRig.position.set(0, 0, 20);
+    camera.position.set(0, 0, 20);
     controls.enabled = false;
 }
 
 function endRender() {
     cameraRig.position.set(0, 0, 5);
+    camera.position.set(0, 0, 5);
     controls.enabled = true;
     controls.update();
 }
+
+//-----------------------
+// Orbital Controls
+//-----------------------
 
 function startControllers(){
     // Initialize OrbitControls
@@ -246,6 +367,21 @@ function setupControllerInteractions() {
         controller2.addEventListener('selectstart', onSelectStart);
         controller2.addEventListener('selectend', onSelectEnd);
     }
+}
+
+//-----------------------
+// Move the Model
+//-----------------------
+
+function getIntersects(x, y) {
+    var rect = renderer.domElement.getBoundingClientRect();
+    var pos = {
+        x: ((x - rect.left) / rect.width) * 2 - 1,
+        y: ((y - rect.top) / rect.height) * -2 + 1
+    };
+    var raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(pos, camera);
+    return raycaster.intersectObjects(scene.children, true);
 }
 
 function onSelectStart(event) {
@@ -283,107 +419,9 @@ function onSelectEnd(event) {
     selectedObject = null;
 }
 
-function createGradientTexture() {
-    const size = 512; // Texture size
-    const canvas = document.createElement('canvas');
-    canvas.width = size;
-    canvas.height = size;
-    const context = canvas.getContext('2d');
-
-    const gradient = context.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-    gradient.addColorStop(0, 'rgba(0,0,0,0)');
-    gradient.addColorStop(1, 'black');
-
-    context.fillStyle = gradient;
-    context.fillRect(0, 0, size, size);
-
-    const texture = new THREE.Texture(canvas);
-    texture.needsUpdate = true;
-    return texture;
-}
-
-function addGradientOverlay(width, height) {
-    const gradientTexture = createGradientTexture();
-    const material = new THREE.MeshBasicMaterial({ 
-        map: gradientTexture, 
-        transparent: true, 
-        side: THREE.DoubleSide 
-    });
-    const geometry = new THREE.PlaneGeometry(width, height); // Match the size of your reflector
-    const plane = new THREE.Mesh(geometry, material);
-    plane.position.copy(reflector.position);
-    plane.position.y += 0.04; // Slightly above the reflector
-    plane.rotation.x = reflector.rotation.x;
-    scene.add(plane);
-}
-
-function adjustWallAndFloorGeometry(imgAspectRatio) {
-    let wallWidth, wallHeight, wallGeometry;
-
-    if (camera.aspect > imgAspectRatio) {
-        // Adjust geometry to maintain image aspect ratio
-        wallWidth = window.innerWidth;
-        wallHeight = wallWidth / imgAspectRatio;
-        wallGeometry = new THREE.PlaneGeometry(wallWidth / 100, wallHeight / 100);
-    } else {
-        wallHeight = window.innerHeight;
-        wallWidth = wallHeight * imgAspectRatio;
-        wallGeometry = new THREE.PlaneGeometry(wallWidth / 100, wallHeight / 100);
-    }
-
-    // Adjust wall geometry
-    wallGeometry = new THREE.PlaneGeometry(wallWidth / 100, wallHeight / 100);
-    if (wall) {
-        wall.geometry.dispose(); // Dispose of the old geometry
-        wall.geometry = wallGeometry;
-    }
-
-    // Adjust floor geometry to match wall width and a fixed depth
-    floorGeometry = new THREE.PlaneGeometry(wallWidth / 100, 10); // Assuming a fixed depth of 10
-    if (reflector) {
-        reflector.geometry.dispose(); // Dispose of the old geometry
-        reflector.geometry = floorGeometry;
-    }
-
-    addGradientOverlay(wallWidth / 100, 10); // Assuming 10 is the desired depth for the floor
-}
-
-function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-
-    // Check if loadedTexture is defined before accessing its properties
-    if (loadedTexture) {
-        const imgAspectRatio = loadedTexture.image.width / loadedTexture.image.height;
-        adjustWallAndFloorGeometry(imgAspectRatio);
-    }
-}
-
-function getIntersects(x, y) {
-    var rect = renderer.domElement.getBoundingClientRect();
-    var pos = {
-        x: ((x - rect.left) / rect.width) * 2 - 1,
-        y: ((y - rect.top) / rect.height) * -2 + 1
-    };
-    var raycaster = new THREE.Raycaster();
-    raycaster.setFromCamera(pos, camera);
-    return raycaster.intersectObjects(scene.children, true);
-}
-
-function animate() {
-    renderer.setAnimationLoop(function () {
-        update(); // Call your update functions here (e.g., for animation)
-        renderer.render(scene, camera);
-    });
-}
-
-function update() {
-    // Update uniforms, controls, or any animations
-    wallMaterial.uniforms.time.value = clock.getElapsedTime();
-}
-
-init();
+//-----------------------
+// Mouse Movements
+//-----------------------
 
 function onMouseDown(event) {
     var intersects = getIntersects(event.clientX, event.clientY);
@@ -428,4 +466,20 @@ function onMouseMove(event) {
 
 function onMouseUp(event) {
     isDragging = false;
+}
+
+//-----------------------
+// Window Resize
+//-----------------------
+
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    // Check if loadedTexture is defined before accessing its properties
+    if (loadedTexture) {
+        const imgAspectRatio = loadedTexture.image.width / loadedTexture.image.height;
+        adjustWallAndFloorGeometry(imgAspectRatio);
+    }
 }

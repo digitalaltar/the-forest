@@ -24,7 +24,6 @@ let previousMousePosition = {
 
 let hdrEnvironment; // Global variable to store the HDR environment map
 
-
 document.addEventListener('mousedown', onMouseDown, false);
 document.addEventListener('mousemove', onMouseMove, false);
 document.addEventListener('mouseup', onMouseUp, false);
@@ -76,6 +75,7 @@ function init() {
 
     // Create a camera rig, and add the camera to the rig
     let cameraRig = new THREE.Group();
+    cameraRig.position.set(0, 0, 0);
     cameraRig.add(camera);
 
     // Then add the cameraRig to the scene instead of the camera
@@ -210,7 +210,7 @@ function checkVR() {
 }
 
 function startRender() {
-    cameraRig.position.set(0, 1.6, 10);
+    cameraRig.position.set(0, 0, 20);
     controls.enabled = false;
 }
 
@@ -237,8 +237,10 @@ function startControllers(){
 
 function setupControllerInteractions() {
     // Assuming controller1 is used for interaction
-    controller1.addEventListener('selectstart', onSelectStart);
-    controller1.addEventListener('selectend', onSelectEnd);
+    if (controller1) {
+        controller1.addEventListener('selectstart', onSelectStart);
+        controller1.addEventListener('selectend', onSelectEnd);
+    }
 
     if (controller2) {
         controller2.addEventListener('selectstart', onSelectStart);

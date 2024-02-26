@@ -122,9 +122,10 @@ function init() {
     });
 
     addLights();
-    loadGLBModel();
-    addEnvironment();
+    //loadGLBModel();
+    //addEnvironment();
     checkVR();
+    //startControllers();
 
     window.addEventListener('resize', onWindowResize);
 

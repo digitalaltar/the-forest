@@ -90,7 +90,7 @@ function init() {
 
     // Create a camera rig, and add the camera to the rig
     let cameraRig = new THREE.Group();
-    cameraRig.position.set(0, 0, 0);
+    cameraRig.position.set(0, 0, 20);
     cameraRig.add(camera);
 
     cameraRig.lookAt(new THREE.Vector3(0, 0, 0)); // Adjust as needed based on your scene's layout
@@ -327,13 +327,11 @@ function checkVR() {
 }
 
 function startRender() {
-    camera.lookAt(new THREE.Vector3(0, 0, 15)); // Adjust as needed based on your scene's layout
+    cameraRig.position.set(0, 0, 20);
     controls.enabled = false;
 }
 
 function endRender() {
-    cameraRig.position.set(0, 0, 5);
-    camera.position.set(0, 0, 5);
     controls.enabled = true;
     controls.update();
 }

@@ -13,7 +13,7 @@ import { RGBELoader } from 'RGBELoader';
 // Variables
 //-----------------------
 
-let scene, camera, renderer;
+let scene, camera, cameraRig, renderer;
 let wall; // Reference to the wall mesh
 let loadedTexture; // Define texture at a higher scope if needed
 let clock = new THREE.Clock(); // Clock to manage uniform time updates
@@ -89,7 +89,7 @@ function init() {
     camera.position.set(0, 0, 5); // Adjusted position
 
     // Create a camera rig, and add the camera to the rig
-    let cameraRig = new THREE.Group();
+    cameraRig = new THREE.Group();
     cameraRig.position.set(0, 0, 0);
     cameraRig.add(camera);
 
@@ -327,7 +327,8 @@ function checkVR() {
 }
 
 function startRender() {
-    cameraRig.position.set(30, 30, 30);
+    cameraRig.position.set(0, 1.6, 10); // Standard eye height in meters
+    cameraRig.rotation.set(0, Math.PI, 0); // Facing a certain direction
     controls.enabled = false;
 }
 

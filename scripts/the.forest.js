@@ -21,6 +21,7 @@ let controls, controller1, controller2;
 let floorGeometry;
 let reflector;
 
+let model;
 let selectedObject = null; // Global variable to store the selected object
 let raycaster = new THREE.Raycaster();
 let tempMatrix = new THREE.Matrix4();
@@ -31,6 +32,7 @@ let previousMousePosition = {
 };
 
 let hdrEnvironment; // Global variable to store the HDR environment map
+let currentSession;
 
 let wallMaterial = new THREE.ShaderMaterial({
     vertexShader: `
@@ -151,6 +153,25 @@ function init() {
 function animate() {
     renderer.setAnimationLoop(function () {
         update();
+
+        if (currentSession) {
+            currentSession.inputSources.forEach((inputSource) => {
+                if (inputSource && inputSource.gamepad && inputSource.gamepad.axes.length > 0) {
+                    const axes = inputSource.gamepad.axes;
+                    if (axes.length >= 4) {
+                        const horizontal = axes[2];
+                        const vertical = axes[3];
+                        const moveSpeed = 0.02
+
+                        if (model) {
+                            model.rotation.y += horizontal * moveSpeed;
+                            model.position.z += vertical * moveSpeed;
+                        }
+                    }
+                }
+            });
+        }
+
         renderer.render(scene, camera);
     });
 }
@@ -202,7 +223,7 @@ function adjustWallAndFloorGeometry(imgAspectRatio) {
 function loadGLBModel() {
     const loader = new GLTFLoader();
     loader.load('./assets/the-forest.glb', function(gltf) {
-        const model = gltf.scene;
+        model = gltf.scene;
 
         model.position.set(-1.3, -8, 4); // Adjust this value as needed to position the model correctly
         model.scale.set(8, 8, 8); // Adjust scale as needed
@@ -327,12 +348,17 @@ function checkVR() {
 }
 
 function startRender() {
+    currentSession = renderer.xr.getSession();
+
     cameraRig.position.set(0, 0, 10); // Standard eye height in meters
     cameraRig.rotation.set(0, 0, 0); // Facing a certain direction
     controls.enabled = false;
 }
 
 function endRender() {
+    currentSession = null;
+
+    camera.position.set(0, 0, 5); // Adjusted position
     controls.enabled = true;
     controls.update();
 }

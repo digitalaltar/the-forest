@@ -90,7 +90,7 @@ function init() {
 
     // Create a camera rig, and add the camera to the rig
     let cameraRig = new THREE.Group();
-    cameraRig.position.set(0, 0, 20);
+    cameraRig.position.set(0, 0, 0);
     cameraRig.add(camera);
 
     cameraRig.lookAt(new THREE.Vector3(0, 0, 0)); // Adjust as needed based on your scene's layout

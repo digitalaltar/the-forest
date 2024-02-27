@@ -327,7 +327,7 @@ function checkVR() {
 }
 
 function startRender() {
-    cameraRig.position.set(0, 20, 20);
+    cameraRig.position.set(30, 30, 30);
     controls.enabled = false;
 }
 

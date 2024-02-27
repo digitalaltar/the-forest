@@ -327,7 +327,7 @@ function checkVR() {
 }
 
 function startRender() {
-    cameraRig.position.set(0, 1.6, 10); // Standard eye height in meters
+    cameraRig.position.set(0, 0, 10); // Standard eye height in meters
     cameraRig.rotation.set(0, 0, 0); // Facing a certain direction
     controls.enabled = false;
 }

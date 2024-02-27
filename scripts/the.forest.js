@@ -88,8 +88,6 @@ function init() {
     camera = new THREE.PerspectiveCamera(90, aspectRatio, 0.1, 1000);
     camera.position.set(0, 0, 5); // Adjusted position
 
-    camera.lookAt(new THREE.Vector3(0, 0, 0)); // Adjust as needed based on your scene's layout
-
     // Create a camera rig, and add the camera to the rig
     let cameraRig = new THREE.Group();
     cameraRig.position.set(0, 0, 0);
@@ -329,8 +327,7 @@ function checkVR() {
 }
 
 function startRender() {
-    cameraRig.position.set(0, 0, 20);
-    camera.position.set(0, 0, 20);
+    camera.lookAt(new THREE.Vector3(0, 0, 15)); // Adjust as needed based on your scene's layout
     controls.enabled = false;
 }
 
